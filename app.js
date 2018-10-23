@@ -49,6 +49,23 @@ const ItemCtrl = (function(){
       return data.totalCalories;
     },
 
+    getItemById: function(id) {
+      let found = null;
+      data.items.forEach(item => {
+        if(item.id === id) {
+          found = item;
+        }
+      });
+      return found;
+    },
+
+    setCurrentItem: function(item) {
+      data.currentItem = item;
+    },
+    getCurrentItem: function() {
+      return data.currentItem;
+    },
+
     logData: function() {
       return data;
     }
@@ -61,6 +78,9 @@ const UICtrl = (function(){
   const UISelectors = {
     itemList: '#item-list',
     addBtn: '.add-btn',
+    updateBtn: '.update-btn',
+    deleteBtn: '.delete-btn',
+    backBtn: '.back-btn',
     itemNameInput: '#item-name',
     itemCaloriesInput: '#item-calories',
     totalCalories: '.total-calories'
@@ -111,6 +131,14 @@ const UICtrl = (function(){
       document.querySelector(UISelectors.itemCaloriesInput).value = '';
     },
 
+    addItemToForm: function() {
+      document.querySelector(UISelectors.itemNameInput)
+      .value = ItemCtrl.getCurrentItem().name;
+      document.querySelector(UISelectors.itemCaloriesInput)
+      .value = ItemCtrl.getCurrentItem().calories;
+      UICtrl.showEditState();
+    },
+
     hideList: function() {
       document.querySelector(UISelectors.itemList).style.display = 'none';
     },
@@ -118,6 +146,20 @@ const UICtrl = (function(){
     showTotalCalories: function(totalCalories) {
       document.querySelector(UISelectors.totalCalories)
       .textContent = totalCalories;
+    },
+
+    clearEditState: function() {
+      UICtrl.clearInput();
+      document.querySelector(UISelectors.updateBtn).style.display = 'none';
+      document.querySelector(UISelectors.deleteBtn).style.display = 'none';
+      document.querySelector(UISelectors.backBtn).style.display = 'none';
+      document.querySelector(UISelectors.addBtn).style.display = 'inline';
+    },
+    showEditState: function() {
+      document.querySelector(UISelectors.updateBtn).style.display = 'inline';
+      document.querySelector(UISelectors.deleteBtn).style.display = 'inline';
+      document.querySelector(UISelectors.backBtn).style.display = 'inline';
+      document.querySelector(UISelectors.addBtn).style.display = 'none';
     }
 
 
@@ -135,6 +177,8 @@ const App = (function(ItemCtrl, UICtrl){
     // add addEventListener
     document.querySelector(UISelectors.addBtn)
     .addEventListener('click', itemAddSubmit);
+    document.querySelector(UISelectors.itemList)
+    .addEventListener('click', itemUpdateSubmit);
   }
 
   //Add item itemAddSubmit
@@ -145,11 +189,14 @@ const App = (function(ItemCtrl, UICtrl){
 
     if(input.name !== '' && input.calories !== '') {
       const newItem = ItemCtrl.addItem(input.name, input.calories);
-      console.log(ItemCtrl.logData());
     }
 
     //add Item to UI
-    UICtrl.addListItem(newItem);
+    try {
+      UICtrl.addListItem(newItem);
+    } catch (err) {
+      console.log(err);
+    }
 
     const totalCalories = ItemCtrl.getTotalCalories();
     UICtrl.showTotalCalories(totalCalories);
@@ -158,11 +205,29 @@ const App = (function(ItemCtrl, UICtrl){
     e.preventDefault();
   }
 
+  const itemUpdateSubmit = function(e) {
+    if(e.target.classList.contains('edit-item')){
+      const listId = e.target.parentNode.parentNode.id;
+
+      const listIdArr = listId.split('-');
+      const id = parseInt(listIdArr[1]);
+
+      const itemToEdit = ItemCtrl.getItemById(id);
+      console.log(itemToEdit);
+
+      ItemCtrl.setCurrentItem(itemToEdit);
+
+      UICtrl.addItemToForm();
+    }
+    e.preventDefault();
+  }
+
   return {
     init: function() {
       console.log('INitializing App...');
-      const items = ItemCtrl.getItems();
 
+      UICtrl.clearEditState();
+      const items = ItemCtrl.getItems();
       if(items.length === 0) {
         UICtrl.hideList();
       } else {
@@ -173,7 +238,7 @@ const App = (function(ItemCtrl, UICtrl){
       const totalCalories = ItemCtrl.getTotalCalories();
       UICtrl.showTotalCalories(totalCalories);
 
-      
+
       // loadEventListeners
       loadEventListeners();
     }
